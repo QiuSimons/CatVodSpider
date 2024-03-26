@@ -2,7 +2,7 @@ package com.github.catvod.parser;
 
 import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.utils.Misc;
-mport com.github.catvod.utils.okhttp.OkHttpUtil;
+import com.github.catvod.utils.okhttp.OkHttpUtil;
 
 import org.json.JSONObject;
 
