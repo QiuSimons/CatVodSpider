@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public class Jianpian extends Spider {
 
-    private final String siteUrl = "https://www.jianpian12.com/";
+    private final String siteUrl = "http://112.124.0.131:20000/";
     private String extend;
 
     private Map<String, String> getHeader() {
