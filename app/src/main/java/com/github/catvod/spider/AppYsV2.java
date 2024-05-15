@@ -5,8 +5,8 @@ import android.text.TextUtils;
 
 import com.github.catvod.crawler.Spider;
 import com.github.catvod.crawler.SpiderDebug;
-import com.github.catvod.net.OkHttp;
-import com.github.catvod.utils.Util;
+import com.github.catvod.utils.Misc;
+import com.github.catvod.utils.okhttp.OkHttpUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -42,7 +42,7 @@ public class AppYsV2 extends Spider {
         JSONArray jsonArray = null;
         if (!url.isEmpty()) {
             SpiderDebug.log(url);
-            String json = OkHttp.string(url, getHeaders(url));
+            String json = OkHttpUtil.string(url, getHeaders(url));
             JSONObject obj = new JSONObject(json);
             if (obj.has("list") && obj.get("list") instanceof JSONArray) {
                 jsonArray = obj.getJSONArray("list");
@@ -145,7 +145,7 @@ public class AppYsV2 extends Spider {
             isTV = true;
         }
         SpiderDebug.log(url);
-        String json = OkHttp.string(url, getHeaders(url));
+        String json = OkHttpUtil.string(url, getHeaders(url));
         JSONObject obj = new JSONObject(json);
         JSONArray videos = new JSONArray();
         if (isTV) {
@@ -197,7 +197,7 @@ public class AppYsV2 extends Spider {
         url = url.replace("筛选year", (extend != null && extend.containsKey("year")) ? extend.get("year") : "");
         url = url.replace("排序", (extend != null && extend.containsKey("排序")) ? extend.get("排序") : "");
         SpiderDebug.log(url);
-        String json = OkHttp.string(url, getHeaders(url));
+        String json = OkHttpUtil.string(url, getHeaders(url));
         JSONObject obj = new JSONObject(json);
         int totalPg = Integer.MAX_VALUE;
         try {
@@ -257,7 +257,7 @@ public class AppYsV2 extends Spider {
         String apiUrl = getApiUrl();
         String url = getPlayUrlPrefix(apiUrl) + ids.get(0);
         SpiderDebug.log(url);
-        String json = OkHttp.string(url, getHeaders(url));
+        String json = OkHttpUtil.string(url, getHeaders(url));
         JSONObject obj = new JSONObject(json);
         JSONObject result = new JSONObject();
         JSONObject vod = new JSONObject();
@@ -272,7 +272,7 @@ public class AppYsV2 extends Spider {
     public String searchContent(String key, boolean quick) throws Exception {
         String apiUrl = getApiUrl();
         String url = getSearchUrl(apiUrl, URLEncoder.encode(key));
-        String json = OkHttp.string(url, getHeaders(url));
+        String json = OkHttpUtil.string(url, getHeaders(url));
         JSONObject obj = new JSONObject(json);
         JSONArray jsonArray = null;
         JSONArray videos = new JSONArray();
@@ -310,7 +310,7 @@ public class AppYsV2 extends Spider {
 
     @Override
     public String playerContent(String flag, String id, List<String> vipFlags) throws Exception {
-        if (flag.contains("fanqie") && Util.isVideoFormat(id)) {
+        if (flag.contains("fanqie") && Misc.isVideoFormat(id)) {
             JSONObject result = new JSONObject();
             result.put("parse", 0);
             result.put("playUrl", "");
@@ -323,7 +323,7 @@ public class AppYsV2 extends Spider {
             JSONObject result = getFinalVideo(flag, parseUrls, id);
             if (result != null) return result.toString();
         }
-        if (Util.isVideoFormat(id)) {
+        if (Misc.isVideoFormat(id)) {
             JSONObject result = new JSONObject();
             result.put("parse", 0);
             result.put("playUrl", "");
@@ -694,7 +694,7 @@ public class AppYsV2 extends Spider {
         for (String parseUrl : parseUrls) {
             if (parseUrl.isEmpty() || parseUrl.equals("null")) continue;
             String playUrl = parseUrl + url;
-            String content = OkHttp.string(playUrl);
+            String content = OkHttpUtil.string(playUrl, null);
             JSONObject tryJson = null;
             try {
                 tryJson = jsonParse(url, content);
@@ -735,7 +735,7 @@ public class AppYsV2 extends Spider {
 
     @Override
     public boolean isVideoFormat(String url) {
-        return Util.isVideoFormat(url);
+        return Misc.isVideoFormat(url);
     }
 
     private String getApiUrl() {
@@ -759,11 +759,11 @@ public class AppYsV2 extends Spider {
             return null;
         }
         if (url.equals(input)) {
-            if (Util.isVip(url) || !Util.isVideoFormat(url)) {
+            if (Misc.isVip(url) || !Misc.isVideoFormat(url)) {
                 return null;
             }
         }
-        if (Util.isBlackVodUrl(url)) {
+        if (Misc.isBlackVodUrl(null, url)) {
             return null;
         }
         JSONObject headers = new JSONObject();
@@ -813,7 +813,7 @@ public class AppYsV2 extends Spider {
             headers.put("User-Agent", " Mozilla/5.0");
         } else if (input.contains("bilibili")) {
             headers.put("Referer", " https://www.bilibili.com/");
-            headers.put("User-Agent", " " + Util.CHROME);
+            headers.put("User-Agent", " " + Misc.UaWinChrome);
         }
         return headers;
     }

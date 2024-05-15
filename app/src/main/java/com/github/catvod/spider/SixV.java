@@ -2,15 +2,8 @@ package com.github.catvod.spider;
 
 import android.text.TextUtils;
 
-import com.github.catvod.crawler.Spider;
-//import com.github.catvod.net.OkHttp;
-import com.github.catvod.utils.okhttp.OkHttpUtil;
+import com.github.catvod.spider.base.BaseSpider;
 
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -18,22 +11,25 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-
 import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * @author zhixc
  * 6V电影网（新版页面）
  */
-public class SixV extends Spider {
+public class SixV extends BaseSpider {
 
     // 可用域名：
     //   https://www.6vdy.org
@@ -45,49 +41,12 @@ public class SixV extends Spider {
 
     private final String userAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36";
 
-    private String req(String url, Map<String, String> header) {
-        //return OkHttp.string(url, header);
-        return OkHttpUtil.string(url, header);
-    }
-
-    private Response req(Request request) throws Exception {
-        return okClient().newCall(request).execute();
-    }
 
     private String req(Response response) throws Exception {
         if (!response.isSuccessful()) return "";
         String content = response.body().string();
         response.close();
         return content;
-    }
-
-    private OkHttpClient okClient() {
-        //return OkHttp.client();
-        return OkHttpUtil.defaultClient();
-    }
-
-    private Map<String, String> getHeader() {
-        Map<String, String> header = new HashMap<>();
-        header.put("User-Agent", userAgent);
-        header.put("Referer", siteUrl + "/");
-        return header;
-    }
-
-    private Map<String, String> getDetailHeader() {
-        Map<String, String> header = new HashMap<>();
-        header.put("User-Agent", userAgent);
-        return header;
-    }
-
-    private Map<String, String> getSearchHeader() {
-        Map<String, String> header = new HashMap<>();
-        header.put("User-Agent", userAgent);
-        return header;
-    }
-
-    private String find(Pattern pattern, String html) {
-        Matcher m = pattern.matcher(html);
-        return m.find() ? m.group(1).trim() : "";
     }
 
     private JSONArray parseVodListFromDoc(String html) throws Exception {
@@ -125,10 +84,6 @@ public class SixV extends Spider {
 
     private String getDescription(String html) {
         return clean(find(Pattern.compile("◎简　　介(.*?)<hr", Pattern.DOTALL), html)).replaceAll("\n", "").replaceAll("　", "").replaceAll("hellip;", "").replaceAll("ldquo;", "【").replaceAll("rdquo;", "】");
-    }
-
-    private String removeHtmlTag(String str) {
-        return str.replaceAll("</?[^>]+>", "");
     }
 
     private boolean isMovie(String vodId) {
@@ -187,6 +142,15 @@ public class SixV extends Spider {
     }
 
     @Override
+    public String homeVideoContent() throws Exception {
+        String html = req(siteUrl, getHeader());
+        JSONArray videos = parseVodListFromDoc(html);
+        JSONObject result = new JSONObject();
+        result.put("list", videos);
+        return result.toString();
+    }
+
+    @Override
     public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) throws Exception {
         String cateUrl = siteUrl + "/" + tid;
         if (!pg.equals("1")) cateUrl += "/index_" + pg + ".html";
@@ -206,7 +170,7 @@ public class SixV extends Spider {
     public String detailContent(List<String> ids) throws Exception {
         String vodId = ids.get(0);
         String detailUrl = siteUrl + vodId;
-        String html = req(detailUrl, getDetailHeader());
+        String html = req(detailUrl, getHeader());
         Document doc = Jsoup.parse(html);
         Elements sourceList = doc.select("#post_content");
         Map<String, String> playMap = isMovie(vodId) ? parsePlayMapForMovieFromDoc(sourceList) : parsePlayMapFromDoc(sourceList);
@@ -221,6 +185,13 @@ public class SixV extends Spider {
         String actor = getActor(partHTML);
         String director = getDirector(partHTML);
         String description = removeHtmlTag(getDescription(partHTML));
+
+        // 由于部分信息过长，故进行一些调整，将年份、地区等信息放到 类别、备注里面
+        typeName += " 地区:" + area;
+        area = "";
+        typeName += " 年份:" + year;
+        remark += " 年份:" + year;
+        year = "";
 
         JSONObject vod = new JSONObject();
         vod.put("vod_id", ids.get(0));
@@ -271,7 +242,7 @@ public class SixV extends Spider {
         } else {
             int page = Integer.parseInt(pg) - 1;
             searchUrl = nextSearchUrlPrefix + page + nextSearchUrlSuffix;
-            html = req(searchUrl, getSearchHeader());
+            html = req(searchUrl, getHeader());
         }
         JSONArray videos = parseVodListFromDoc(html);
         JSONObject result = new JSONObject();
